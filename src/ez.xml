@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- filename: ez.xml -->
+<component>
+	<name>org.freedesktop.IBus.Ez</name>
+	<description>Ez Component</description>
+	<exec>/usr/libexec/ibus-engine-ez --ibus</exec>
+	<version>0.1</version>
+	<author>Joseph Siao</author>
+	<license>GPL</license>
+	<homepage>http://github.com</homepage>
+	<textdomain>ibus-ez</textdomain>
+
+	<engines>
+		<engine>
+			<name>ez</name>
+			<language>zh</language>
+			<license>GPL</license>
+			<author>Joseph Siao</author>
+			<icon>/usr/local/share/ibus-ez/wooden-docks.svg</icon>
+			<layout>us</layout>
+			<longname>Ez</longname>
+			<description>Ez Input Method</description>
+			<rank>0</rank>
+		</engine>
+	</engines>
+
+</component>

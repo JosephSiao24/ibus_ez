@@ -1,0 +1,3 @@
+func.o: func.cpp /usr/include/stdc-predef.h func.h
+/usr/include/stdc-predef.h:
+func.h:
