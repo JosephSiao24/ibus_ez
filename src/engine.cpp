@@ -34,6 +34,7 @@ static void ibus_ez_engine_destroy(IBusEzEngine* ez);
 static void ibus_ez_engine_commit_string(IBusEzEngine *ez, const gchar *string);
 static void ibus_ez_engine_update(IBusEzEngine *ez);
 static void ibus_ez_engine_update_preedit(IBusEzEngine *ez);
+static void ibus_ez_engine_preedit_erase(IBusEzEngine *ez);
 static void ibus_ez_engine_update_lookup_table(IBusEzEngine *ez);
 static void ibus_ez_engine_on_page_down(IBusEzEngine* ez);
 //helper function
@@ -124,6 +125,16 @@ static void
 ibus_ez_engine_update(IBusEzEngine *ez){
 	ibus_ez_engine_update_preedit(ez);
 	//ibus_ez_engine_update_lookup_table(ez);
+}
+
+static void
+ibus_ez_engine_preedit_erase(IBusEzEngine *ez){
+	gchar *start = g_utf8_offset_to_pointer(ez->preedit->str, ez->cursor_pos - 1);
+        gchar *end = g_utf8_next_char(start);
+        gsize erase_len = end - start;
+        g_string_erase(ez->preedit, start - ez->preedit->str, erase_len);
+        ez->cursor_pos--;
+	ibus_ez_engine_update_preedit(ez);
 }
 
 static void
@@ -222,6 +233,17 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 				return true;
 			}
 		}
+		if( ((keyval >= IBUS_A && keyval <= IBUS_Z) || (keyval >= IBUS_a && keyval <= IBUS_z)) && !(modifiers & IBUS_CONTROL_MASK)){
+			gint index = 0;
+			if(keyval >= IBUS_A && keyval <= IBUS_Z){
+				index = keyval - IBUS_A + 10;
+			}else if(keyval >= IBUS_a && keyval <= IBUS_z){
+				index = keyval - IBUS_a + 10;
+			}
+			text = ibus_text_new_from_static_string(basic_word[index]->str);
+			ibus_ez_engine_append_preedit(ez,text);
+			return true;
+		}
 		switch(keyval){
 			case IBUS_space:{
 				ibus_ez_engine_commit_string(ez, "HelloWorld");
@@ -280,13 +302,15 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 					return false;
 				}
 			}
-			case IBUS_w:{
-				ibus_ez_engine_commit_string(ez, "test");
-				return true;
-			}
-			case IBUS_h:{
+			case IBUS_semicolon:{
 				ibus_ez_engine_update_lookup_table(ez);
 				return true;
+			}
+			case IBUS_BackSpace:{
+				if(ez->cursor_pos > 0){
+					ibus_ez_engine_preedit_erase(ez);
+					return true;
+				}
 			}
 			case IBUS_Return:{
 				if(ibus_lookup_table_get_number_of_candidates(ez->table) > 0){

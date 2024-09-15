@@ -23,15 +23,22 @@ std::vector<GString*> basic_word{
 	g_string_new("ㄜ"), //20
 	g_string_new("ㄠ"),
 	g_string_new("ㄩ"), //22
-	g_string_new("ㄢ"),
-	g_string_new("ㄢ"), //24
-	g_string_new("ㄢ"),
-	g_string_new("ㄢ"), //26
-	g_string_new("ㄢ"),
-	g_string_new("ㄢ"), //28
-	g_string_new("ㄢ"),
-	g_string_new("ㄢ"), //30
-	g_string_new("ㄢ"),
+	g_string_new("ㄥ"),
+	g_string_new("ㄟ"), //24
+	g_string_new("ㄣ"),
+	g_string_new("ㄆ"), //26
+	g_string_new("ㄐ"),
+	g_string_new("ㄋ"), //28
+	g_string_new("ㄔ"),
+	g_string_new("ㄧ"), //30
+	g_string_new("ㄒ"),
+	g_string_new("ㄊ"), //32
+	g_string_new("ㄌ"),
+	g_string_new("ㄗ"), //34
+	g_string_new("ㄈ"),
+	g_string_new("ㄦ"), //36
+	g_string_new("ㄤ"),
+	g_string_new("ㄥ"), //38
 };
 
 
