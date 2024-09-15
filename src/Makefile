@@ -101,7 +101,7 @@ am__installdirs = "$(DESTDIR)$(libexecdir)" \
 	"$(DESTDIR)$(componentdir)"
 PROGRAMS = $(libexec_PROGRAMS)
 am_ibus_engine_ez_OBJECTS = ibus_engine_ez-hello.$(OBJEXT) \
-	ibus_engine_ez-engine.$(OBJEXT)
+	ibus_engine_ez-engine.$(OBJEXT) ibus_engine_ez-dict.$(OBJEXT)
 ibus_engine_ez_OBJECTS = $(am_ibus_engine_ez_OBJECTS)
 ibus_engine_ez_DEPENDENCIES =
 AM_V_P = $(am__v_P_$(V))
@@ -119,7 +119,8 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/ibus_engine_ez-engine.Po \
+am__depfiles_remade = ./$(DEPDIR)/ibus_engine_ez-dict.Po \
+	./$(DEPDIR)/ibus_engine_ez-engine.Po \
 	./$(DEPDIR)/ibus_engine_ez-hello.Po
 am__mv = mv -f
 AM_V_lt = $(am__v_lt_$(V))
@@ -291,7 +292,7 @@ target_alias =
 top_build_prefix = ../
 top_builddir = ..
 top_srcdir = ..
-ibus_engine_ez_SOURCES = hello.cpp engine.cpp
+ibus_engine_ez_SOURCES = hello.cpp engine.cpp dict.cpp
 ibus_engine_ez_CPPFLAGS = \
 	-pthread -I/usr/include/ibus-1.0 -I/usr/include/libmount -I/usr/include/blkid -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include 
 
@@ -395,6 +396,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+include ./$(DEPDIR)/ibus_engine_ez-dict.Po # am--include-marker
 include ./$(DEPDIR)/ibus_engine_ez-engine.Po # am--include-marker
 include ./$(DEPDIR)/ibus_engine_ez-hello.Po # am--include-marker
 
@@ -445,6 +447,20 @@ ibus_engine_ez-engine.obj: engine.cpp
 #	$(AM_V_CXX)source='engine.cpp' object='ibus_engine_ez-engine.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ibus_engine_ez_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ibus_engine_ez-engine.obj `if test -f 'engine.cpp'; then $(CYGPATH_W) 'engine.cpp'; else $(CYGPATH_W) '$(srcdir)/engine.cpp'; fi`
+
+ibus_engine_ez-dict.o: dict.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ibus_engine_ez_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ibus_engine_ez-dict.o -MD -MP -MF $(DEPDIR)/ibus_engine_ez-dict.Tpo -c -o ibus_engine_ez-dict.o `test -f 'dict.cpp' || echo '$(srcdir)/'`dict.cpp
+	$(AM_V_at)$(am__mv) $(DEPDIR)/ibus_engine_ez-dict.Tpo $(DEPDIR)/ibus_engine_ez-dict.Po
+#	$(AM_V_CXX)source='dict.cpp' object='ibus_engine_ez-dict.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ibus_engine_ez_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ibus_engine_ez-dict.o `test -f 'dict.cpp' || echo '$(srcdir)/'`dict.cpp
+
+ibus_engine_ez-dict.obj: dict.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ibus_engine_ez_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ibus_engine_ez-dict.obj -MD -MP -MF $(DEPDIR)/ibus_engine_ez-dict.Tpo -c -o ibus_engine_ez-dict.obj `if test -f 'dict.cpp'; then $(CYGPATH_W) 'dict.cpp'; else $(CYGPATH_W) '$(srcdir)/dict.cpp'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/ibus_engine_ez-dict.Tpo $(DEPDIR)/ibus_engine_ez-dict.Po
+#	$(AM_V_CXX)source='dict.cpp' object='ibus_engine_ez-dict.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ibus_engine_ez_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ibus_engine_ez-dict.obj `if test -f 'dict.cpp'; then $(CYGPATH_W) 'dict.cpp'; else $(CYGPATH_W) '$(srcdir)/dict.cpp'; fi`
 install-componentDATA: $(component_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(component_DATA)'; test -n "$(componentdir)" || list=; \
@@ -594,7 +610,8 @@ clean: clean-am
 clean-am: clean-generic clean-libexecPROGRAMS mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/ibus_engine_ez-engine.Po
+		-rm -f ./$(DEPDIR)/ibus_engine_ez-dict.Po
+	-rm -f ./$(DEPDIR)/ibus_engine_ez-engine.Po
 	-rm -f ./$(DEPDIR)/ibus_engine_ez-hello.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -641,7 +658,8 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/ibus_engine_ez-engine.Po
+		-rm -f ./$(DEPDIR)/ibus_engine_ez-dict.Po
+	-rm -f ./$(DEPDIR)/ibus_engine_ez-engine.Po
 	-rm -f ./$(DEPDIR)/ibus_engine_ez-hello.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
