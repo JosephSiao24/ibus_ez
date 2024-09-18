@@ -41,4 +41,27 @@ std::vector<GString*> basic_word{
 	g_string_new("ㄥ"), //38
 };
 
+dictTree::dictTree(){
+	identy = 0;
+}
+
+dictTree::dictTree(int id){
+	identy = id;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
