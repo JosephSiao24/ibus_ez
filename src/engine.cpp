@@ -75,18 +75,25 @@ void initialDict(IBusEzEngine *ez){
 		ss.str(splited[2]);
 		string symbol;
 		dictTree* cur = ez->dict_zh;
+		int idx = 0;
 		while(getline(ss, symbol, ' ')){
 			std::string cleaned_symbol = trim(symbol);	
-			int idx = stoi(cleaned_symbol);
+			idx = stoi(cleaned_symbol);
 			if(cur->next.find(idx) == cur->next.end()){
 				cur->next[idx] = new dictTree();
 			}
 			cur = cur->next[idx];
 		}
-		if(cur->next.find(EZSPACE) == cur->next.end())
-			cur->next[EZSPACE] = new dictTree(1);
-		cur = cur->next[EZSPACE];
+		//if the end wasn't tone, then create a  space node behind current node
+		if(!(idx == 3 || idx == 4 || idx == 6 || idx == 7)){
+			if(cur->next.find(EZSPACE) == cur->next.end())
+				cur->next[EZSPACE] = new dictTree(1);
+			cur = cur->next[EZSPACE];
+		}
+		//insert the word array in the leaf node
 		cur->word.push_back(g_string_new(splited[0].c_str()));
+		//this line ineffcient, may consider remove
+		cur->id = 1;
 	}
 	file.close();
 	
@@ -206,7 +213,7 @@ ibus_ez_engine_commit_preedit(IBusEzEngine *ez){
 static void
 isWord(IBusEzEngine *ez, string a, dictTree* cur){
 	string str = "0";
-	str[0] += cur->identy;
+	str[0] += cur->id;
 	str += " ";
 	str += "isWord ";
 	str += a;
@@ -229,7 +236,7 @@ ibus_ez_engine_search_a_dict(IBusEzEngine *ez){
 		}
 	}
 	
-	if(cur->identy == 0)
+	if(cur->id == 0)
 		return false;
 	ez->cur_dict = cur->word;
 	return true;
@@ -255,6 +262,26 @@ print_search_idx(IBusEzEngine *ez, string a){
 }
 
 static void
+print_dict_pointer(IBusEzEngine *ez, string a){
+	string str = "0";
+	str[0] += ez->dict_pointer.size();
+	str += " ";
+	str += "dict_pointer ";
+	str += to_string(ez->pointer_idx);
+	str += " pointer_idx ";
+	str += to_string(ez->search_idx.size());
+	str += " search_idx ";
+	for(int i=0; i< ez->dict_pointer.size(); i++){
+		str += to_string(ez->dict_pointer[i].size());
+		str += " pointer_dict:";
+		str += to_string(i);
+		str += " ";
+	}
+	str += a;
+	ibus_ez_engine_commit_string(ez, str.c_str());
+}
+
+static void
 ibus_ez_engine_update_lookup_table(IBusEzEngine *ez){
 	/*if(ez->preedit->len == 0){
 		ibus_engine_hide_lookup_table((IBusEngine*)ez);
@@ -262,6 +289,7 @@ ibus_ez_engine_update_lookup_table(IBusEzEngine *ez){
 	}*/
 	ibus_lookup_table_clear(ez->table);
 	bool dict_exist = false;
+	//print_dict_pointer(ez, " In lookup table\n");
 	if(ez->pointer_idx <= ez->dict_pointer.size() && ez->dict_pointer.size() > 0 && ez->search_idx.size() == 0){
 		ez->cur_dict = ez->dict_pointer[ez->pointer_idx-1];
 		for(int i = 0; i < ez->cur_dict.size(); i++){
@@ -293,8 +321,11 @@ ibus_ez_engine_update_lookup_table(IBusEzEngine *ez){
 		dict_exist = true;
 	}
 	if(dict_exist){
+		
 		ibus_ez_engine_search_idx_clear(ez);
-		ibus_lookup_table_set_cursor_pos(ez->table, ez->tableIdx % PAGESIZE);
+		//make sure it start at first page
+		ibus_lookup_table_set_cursor_pos(ez->table, 0);
+		
 		ibus_engine_update_lookup_table((IBusEngine *)ez, ez->table, true);
 	}else{
 		ibus_ez_engine_search_idx_erase(ez);
@@ -308,8 +339,11 @@ ibus_ez_engine_search_idx_append(IBusEzEngine *ez, int num){
 
 static void
 ibus_ez_engine_search_idx_erase(IBusEzEngine *ez){
-	ez->search_idx.erase(ez->search_idx.begin()+ez->search_pos-1);
-	ez->search_pos -= 1;
+	//before erasing check the vector whether is empty
+	if(ez->search_idx.size() > 0){
+		ez->search_idx.erase(ez->search_idx.begin()+ez->search_pos-1);
+		ez->search_pos -= 1;
+	}
 }
 
 static void 
@@ -324,7 +358,7 @@ ibus_ez_engine_hide_lookup_table(IBusEzEngine *ez){
 	ibus_engine_hide_lookup_table((IBusEngine*)ez);
 	ez->tableIdx = 0;
 }
-
+//not write dict_pointer_clear
 static void 
 ibus_ez_engine_dict_pointer_clear(IBusEzEngine *ez){
 	ez->dict_pointer.clear();
@@ -386,11 +420,6 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 					print_cursor(ez, " after selected\n");
 				}
 				return true;
-			}else{
-				ibus_ez_engine_search_idx_append(ez, keyval - IBUS_0);
-				text = ibus_text_new_from_static_string(basic_word[keyval - IBUS_0]->str);
-				ibus_ez_engine_append_preedit(ez,text);
-				return true;
 			}
 		}
 		if( ((keyval >= IBUS_A && keyval <= IBUS_Z) || (keyval >= IBUS_a && keyval <= IBUS_z)) && !(modifiers & IBUS_CONTROL_MASK)){
@@ -408,6 +437,7 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 		switch(keyval){
 			case IBUS_space:{
 				if(ez->search_idx.size() > 0){
+					//flat tone is not added to preedit, so the preedit erase step awalys erase size of search_idx minus one length
 					ibus_ez_engine_search_idx_append(ez, EZSPACE);
 					ibus_ez_engine_update_lookup_table(ez);
 					return true;
@@ -417,6 +447,30 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 				}else{
 					return false;
 				}
+			}
+			//if it's a common symbol, continue read input
+			case IBUS_1:
+			case IBUS_2:
+			case IBUS_5:
+			case IBUS_8:
+			case IBUS_9:
+			case IBUS_0:{
+				ibus_ez_engine_search_idx_append(ez, keyval - IBUS_0);
+				text = ibus_text_new_from_static_string(basic_word[keyval - IBUS_0]->str);
+				ibus_ez_engine_append_preedit(ez,text);
+				return true;
+			}
+			//if it's a tone, then go to dict process
+			case IBUS_3:
+			case IBUS_4:
+			case IBUS_6:
+			//try not add other tone in preedit
+			case IBUS_7:{
+				ibus_ez_engine_search_idx_append(ez, keyval - IBUS_0);
+				//text = ibus_text_new_from_static_string(basic_word[keyval - IBUS_0]->str);
+				//ibus_ez_engine_append_preedit(ez,text);
+				ibus_ez_engine_update_lookup_table(ez);	
+				return true;
 			}
 			case IBUS_Up:{
 				if(ibus_lookup_table_get_number_of_candidates(ez->table) > 0){
@@ -437,7 +491,10 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 					ibus_ez_engine_on_page_down(ez);
 					return true;
 				}else if(ez->dict_pointer.size() > 0){
+					if(EZDEBUG)
+						print_dict_pointer(ez, " In switch IBUS down\n");
 					ibus_ez_engine_update_lookup_table(ez);
+					return true;
 				}else{
 					return false;
 				}
@@ -456,9 +513,12 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 					if(ez->search_pos < ez->search_idx.size()-1){
 						ez->search_pos += 1;
 					}
-					if(ez->pointer_idx == ez->cursor_pos && ez->pointer_idx < ez->dict_pointer.size()){
+					//this part may cause pointer dict error 
+					if(ez->pointer_idx == ez->cursor_pos-1 && ez->pointer_idx < ez->dict_pointer.size()){
 						ez->pointer_idx += 1;
 					}
+					if(EZDEBUG)
+						print_dict_pointer(ez, " In switch IBUS right\n");
 					ibus_ez_engine_update_preedit(ez);
 					return true;
 				}else{
@@ -473,13 +533,18 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 					ibus_ez_engine_on_page_up(ez);
 					return true;
 				}else if(ez->cursor_pos > 0){
+				
 					ez->cursor_pos -= 1;
 					//move the index of search_idx
 					if(ez->search_pos > 0)
 						ez->search_pos -= 1;
-					if(ez->pointer_idx == ez->cursor_pos){
+					//becuase the cursor_pos was decrease so cursor_pos plus one while compare with pointer idx
+					if(ez->pointer_idx == ez->cursor_pos+1){
 						ez->pointer_idx -= 1;
 					}
+					//print_cursor(ez, " In switch IBUS left \n");
+					if(EZDEBUG)
+						print_dict_pointer(ez, " In switch IBUS left\n");
 					ibus_ez_engine_update_preedit(ez);
 					return true;
 				}else{

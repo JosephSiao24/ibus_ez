@@ -42,11 +42,11 @@ std::vector<GString*> basic_word{
 };
 
 dictTree::dictTree(){
-	identy = 0;
+	id = 0;
 }
 
-dictTree::dictTree(int id){
-	identy = id;
+dictTree::dictTree(int identity){
+	id = identity;
 }
 
 

@@ -12,7 +12,7 @@ class dictTree{
 public:
 	map<int, dictTree*> next;
 	vector<GString*> word;
-	gint identy;
+	gint id;
 	
 	dictTree();
 	dictTree(int id);
