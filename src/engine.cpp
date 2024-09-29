@@ -41,6 +41,7 @@ static void ibus_ez_engine_destroy(IBusEzEngine* ez);
 static void ibus_ez_engine_commit_string(IBusEzEngine *ez, const gchar *string);
 static void ibus_ez_engine_update(IBusEzEngine *ez);
 static void ibus_ez_engine_update_preedit(IBusEzEngine *ez);
+static void ibus_ez_engine_insert_preedit(IBusEzEngine *ez, IBusText * text);
 static void ibus_ez_engine_preedit_erase(IBusEzEngine *ez);
 static void ibus_ez_engine_update_lookup_table(IBusEzEngine *ez);
 static void ibus_ez_engine_on_page_down(IBusEzEngine* ez);
@@ -48,6 +49,7 @@ static void ibus_ez_engine_search_idx_append(IBusEzEngine *ez, int num);
 static void ibus_ez_engine_search_idx_clear(IBusEzEngine *ez);
 static void ibus_ez_engine_dict_pointer_clear(IBusEzEngine *ez);
 static void ibus_ez_engine_search_idx_erase(IBusEzEngine *ez);
+static void ibus_ez_engine_hide_lookup_table(IBusEzEngine *ez);
 //helper function
 void initialDict(IBusEzEngine *ez);
 static void print_cursor(IBusEzEngine *ez, string a);
@@ -198,6 +200,19 @@ ibus_ez_engine_append_preedit(IBusEzEngine *ez, IBusText * text){
 }
 
 static void
+ibus_ez_engine_insert_preedit(IBusEzEngine *ez, IBusText * text){
+	/*This function could get the actual len in utf-8 code string*/
+	/*gsize len = g_utf8_strlen(ez->preedit->str, -1);*/
+	
+	/*Get the pointer of the ez->cursor_pos idx */
+    	gchar* insert_pos = g_utf8_offset_to_pointer(ez->preedit->str, ez->cursor_pos); 
+    	/*Use head pointer minus idx pointer to get offset*/
+	g_string_insert(ez->preedit, insert_pos - ez->preedit->str, text->text);
+	ez->cursor_pos += 1;
+	ibus_ez_engine_update_preedit(ez);
+}
+
+static void
 ibus_ez_engine_commit_preedit(IBusEzEngine *ez){
 	IBusText *text;
 	text = ibus_text_new_from_static_string(ez->preedit->str);
@@ -318,7 +333,17 @@ ibus_ez_engine_update_lookup_table(IBusEzEngine *ez){
 		//this step for reference words after selected candidate
 		ez->dict_pointer.push_back(ez->cur_dict);
 		ez->pointer_idx += 1;
-		dict_exist = true;
+		
+		/*choose first candidate*/
+		IBusText* text = ibus_lookup_table_get_candidate(ez->table, 0);
+		//ibus_engine_commit_text((IBusEngine *)ez, text);
+		ibus_ez_engine_append_preedit(ez, text);
+		ibus_ez_engine_update(ez);
+		ibus_ez_engine_hide_lookup_table(ez);
+		
+		ibus_ez_engine_search_idx_clear(ez);
+		/*next line is useless but not remove now*/
+		//dict_exist = true;
 	}
 	if(dict_exist){
 		
@@ -413,7 +438,7 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 			if(table && index_num < ibus_lookup_table_get_number_of_candidates(table)){
 				text = ibus_lookup_table_get_candidate(table, index_num);
 				//ibus_engine_commit_text((IBusEngine *)ez, text);
-				ibus_ez_engine_append_preedit(ez, text);
+				ibus_ez_engine_insert_preedit(ez, text);
 				ibus_ez_engine_update(ez);
 				ibus_ez_engine_hide_lookup_table(ez);
 				if(EZDEBUG){
