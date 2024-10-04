@@ -8,6 +8,7 @@
 using namespace std;
 
 extern vector<GString*> basic_word;
+extern map<int, int> phonetic_type;
 class dictTree{
 public:
 	map<int, dictTree*> next;

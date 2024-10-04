@@ -262,6 +262,9 @@ print_cursor(IBusEzEngine *ez, string a){
 	string str = "0";
 	str[0] += ez->cursor_pos;
 	str += " ";
+	str += "preedit len ";
+	str += to_string(ez->preedit->len);
+	str += " ";
 	str += a;
 	ibus_ez_engine_commit_string(ez, str.c_str());
 }
@@ -362,6 +365,39 @@ ibus_ez_engine_search_idx_append(IBusEzEngine *ez, int num){
 	ez->search_pos += 1;
 }
 
+/*while same kind of phonetic mutiple times, the same phonetic must be replaced*/
+static void
+ibus_ez_engine_search_idx_insert(IBusEzEngine *ez, int num){
+	/*Search the position to replace or insert*/
+	int insert_pos = ez->search_idx.size(); //defualt is append
+	for(int i=0; i < ez->search_idx.size(); i++){
+		/*If figure out same type that aleardy exist in search_idx*/
+		if(phonetic_type[ez->search_idx[i]] == phonetic_type[num]){
+			insert_pos = i;
+			break;
+		}
+	}
+	IBusText* text;
+	/*Processing insert*/
+	if(insert_pos == ez->search_idx.size()){
+		ibus_ez_engine_search_idx_append(ez, num);
+		text = ibus_text_new_from_static_string(basic_word[num]->str);
+		ibus_ez_engine_append_preedit(ez,text);
+	}else{
+		//replace search_idx
+		ez->search_idx[insert_pos] = num;
+		//Adjust cursor position, rewriting preedit
+		ez->cursor_pos = insert_pos+1;
+		ibus_ez_engine_preedit_erase(ez);
+		text = ibus_text_new_from_static_string(basic_word[num]->str);
+		ibus_ez_engine_insert_preedit(ez, text);
+		//move cursor_pos to end
+		ez->cursor_pos = g_utf8_strlen(ez->preedit->str, -1);
+	}
+	
+	ibus_ez_engine_update_preedit(ez);
+}
+
 static void
 ibus_ez_engine_search_idx_erase(IBusEzEngine *ez){
 	//before erasing check the vector whether is empty
@@ -454,9 +490,11 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 			}else if(keyval >= IBUS_a && keyval <= IBUS_z){
 				index_alpha = keyval - IBUS_a + 10;
 			}
-			ibus_ez_engine_search_idx_append(ez, index_alpha);
+			ibus_ez_engine_search_idx_insert(ez, index_alpha);
+			/*
 			text = ibus_text_new_from_static_string(basic_word[index_alpha]->str);
 			ibus_ez_engine_append_preedit(ez,text);
+			*/
 			return true;
 		}
 		switch(keyval){
@@ -480,9 +518,7 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 			case IBUS_8:
 			case IBUS_9:
 			case IBUS_0:{
-				ibus_ez_engine_search_idx_append(ez, keyval - IBUS_0);
-				text = ibus_text_new_from_static_string(basic_word[keyval - IBUS_0]->str);
-				ibus_ez_engine_append_preedit(ez,text);
+				ibus_ez_engine_search_idx_insert(ez, keyval - IBUS_0);
 				return true;
 			}
 			//if it's a tone, then go to dict process
