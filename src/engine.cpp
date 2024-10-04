@@ -533,6 +533,26 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 				ibus_ez_engine_update_lookup_table(ez);	
 				return true;
 			}
+			case IBUS_minus:{
+				ibus_ez_engine_search_idx_insert(ez, 36);
+				return true;
+			}
+			case IBUS_semicolon:{
+				ibus_ez_engine_search_idx_insert(ez, 37);
+				return true;
+			}
+			case IBUS_slash:{
+				ibus_ez_engine_search_idx_insert(ez, 38);
+				return true;
+			}
+			case IBUS_comma:{
+				ibus_ez_engine_search_idx_insert(ez, 39);
+				return true;
+			}
+			case IBUS_period:{
+				ibus_ez_engine_search_idx_insert(ez, 40);
+				return true;
+			}
 			case IBUS_Up:{
 				if(ibus_lookup_table_get_number_of_candidates(ez->table) > 0){
 					if(ez->tableIdx > 0){
@@ -612,10 +632,7 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 					return false;
 				}
 			}
-			case IBUS_semicolon:{
-				ibus_ez_engine_update_lookup_table(ez);
-				return true;
-			}
+			
 			case IBUS_BackSpace:{
 				if(ez->cursor_pos > 0){
 					ibus_ez_engine_preedit_erase(ez);
