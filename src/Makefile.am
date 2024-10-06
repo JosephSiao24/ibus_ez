@@ -1,6 +1,6 @@
 #AM_CXXFLAGS = -E
 libexec_PROGRAMS = ibus-engine-ez
-ibus_engine_ez_SOURCES = hello.cpp engine.cpp dict.cpp
+ibus_engine_ez_SOURCES = hello.cpp engine.cpp dict.cpp en_buffer.cpp
 ibus_engine_ez_CPPFLAGS = \
 	@IBUS_CFLAGS@ 
 ibus_engine_ez_LDADD = \

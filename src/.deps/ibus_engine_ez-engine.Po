@@ -471,8 +471,8 @@ ibus_engine_ez-engine.o: engine.cpp /usr/include/stdc-predef.h engine.h \
  /usr/include/c++/11/bits/locale_facets.tcc \
  /usr/include/c++/11/bits/basic_ios.tcc \
  /usr/include/c++/11/bits/ostream.tcc /usr/include/c++/11/istream \
- /usr/include/c++/11/bits/istream.tcc dict.h /usr/include/c++/11/vector \
- /usr/include/c++/11/bits/stl_uninitialized.h \
+ /usr/include/c++/11/bits/istream.tcc en_buffer.h dict.h \
+ /usr/include/c++/11/vector /usr/include/c++/11/bits/stl_uninitialized.h \
  /usr/include/c++/11/bits/stl_vector.h \
  /usr/include/c++/11/bits/stl_bvector.h \
  /usr/include/c++/11/bits/vector.tcc /usr/include/c++/11/map \
@@ -1072,6 +1072,7 @@ engine.h:
 /usr/include/c++/11/bits/ostream.tcc:
 /usr/include/c++/11/istream:
 /usr/include/c++/11/bits/istream.tcc:
+en_buffer.h:
 dict.h:
 /usr/include/c++/11/vector:
 /usr/include/c++/11/bits/stl_uninitialized.h:

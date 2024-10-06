@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "en_buffer.h"
 #include "dict.h"
 #include <vector>
 #include <cstring>
@@ -23,9 +24,13 @@ struct _IBusEzEngine{
 	
 	vector<guint> search_idx;
 	int search_pos;
+	int unmatch_buffer_len;
+	
 	vector<GString*> cur_dict;
 	int pointer_idx;
 	vector<vector<GString*>> dict_pointer;
+	
+	en_buffer* unmatch_en;
 };
 
 struct _IBusEzEngineClass{
@@ -136,11 +141,13 @@ ibus_ez_engine_init(IBusEzEngine *ez){
 	ez->shift_press = false;
 	ez->tableIdx = 0;
 	ez->search_pos = 0;
+	ez->unmatch_buffer_len = 0;
 	ez->pointer_idx = 0;
 	//page size, cursor position, cursor visible, round
 	ez->table = ibus_lookup_table_new(PAGESIZE,9,true, false);
 	//initial dict
 	ez->dict_zh = new dictTree;
+	ez->unmatch_en = new en_buffer();
 	initialDict(ez);
 	g_object_ref_sink(ez->table);
 }
@@ -296,16 +303,18 @@ print_dict_pointer(IBusEzEngine *ez, string a){
 	str += " pointer_idx ";
 	str += to_string(ez->search_idx.size());
 	str += " search_idx ";
-	for(int i=0; i< ez->dict_pointer.size(); i++){
+	str += to_string(ez->cursor_pos);
+	str += " cursor_pos ";
+	/*for(int i=0; i< ez->dict_pointer.size(); i++){
 		str += to_string(ez->dict_pointer[i].size());
 		str += " pointer_dict:";
 		str += to_string(i);
 		str += " ";
-	}
+	}*/
 	str += a;
 	ibus_ez_engine_commit_string(ez, str.c_str());
 }
-
+/*Some logic of this function is messed, but don't fix it now*/
 static void
 ibus_ez_engine_update_lookup_table(IBusEzEngine *ez){
 	/*if(ez->preedit->len == 0){
@@ -352,11 +361,13 @@ ibus_ez_engine_update_lookup_table(IBusEzEngine *ez){
 		ibus_ez_engine_hide_lookup_table(ez);
 		
 		ibus_ez_engine_search_idx_clear(ez);
+		ez->unmatch_buffer_len = 0;
 		/*next line is useless but not remove now*/
+		
 		//dict_exist = true;
 	}
 	if(dict_exist){
-		
+		ez->unmatch_buffer_len = 0;
 		ibus_ez_engine_search_idx_clear(ez);
 		//make sure it start at first page
 		ibus_lookup_table_set_cursor_pos(ez->table, 0);
@@ -394,7 +405,7 @@ ibus_ez_engine_search_idx_insert(IBusEzEngine *ez, int num){
 		//replace search_idx
 		ez->search_idx[insert_pos] = num;
 		//Adjust cursor position, rewriting preedit
-		ez->cursor_pos = insert_pos+1;
+		ez->cursor_pos = g_utf8_strlen(ez->preedit->str, -1) - ez->search_idx.size() + insert_pos + 1;
 		ibus_ez_engine_preedit_erase(ez);
 		text = ibus_text_new_from_static_string(basic_word[num]->str);
 		ibus_ez_engine_insert_preedit(ez, text);
@@ -418,6 +429,7 @@ static void
 ibus_ez_engine_search_idx_clear(IBusEzEngine *ez){
 	ez->search_idx.clear();
 	ez->search_pos = 0;
+	ez->unmatch_buffer_len = 0;
 }
 
 static void
@@ -426,6 +438,14 @@ ibus_ez_engine_hide_lookup_table(IBusEzEngine *ez){
 	ibus_engine_hide_lookup_table((IBusEngine*)ez);
 	ez->tableIdx = 0;
 }
+static void
+ibus_ez_engine_dict_pointer_erase(IBusEzEngine *ez){
+	if(ez->pointer_idx > 0){
+		ez->dict_pointer.erase(ez->dict_pointer.begin()+ez->pointer_idx-1);
+		ez->pointer_idx -= 1;
+	}
+}
+
 //not write dict_pointer_clear
 static void 
 ibus_ez_engine_dict_pointer_clear(IBusEzEngine *ez){
@@ -438,6 +458,15 @@ ibus_ez_engine_shift_mode_clear(IBusEzEngine *ez){
 	ibus_ez_engine_clear_preedit(ez);
 	ibus_ez_engine_search_idx_clear(ez);
 	ibus_ez_engine_dict_pointer_clear(ez);
+}
+
+static void
+print_unmatch_buffer_len(IBusEzEngine *ez, string a){
+	string str = "0";
+	str[0] += ez->unmatch_buffer_len;
+	str += " ";
+	str += a;
+	ibus_ez_engine_commit_string(ez, str.c_str());
 }
 
 static gboolean 
@@ -468,6 +497,7 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 		return false;
 	}else{
 		//press shift switch to english method
+			//print_unmatch_buffer_len(ez, "every time\n");
 		if(keyval == IBUS_Shift_L && !(modifiers & IBUS_RELEASE_MASK)){
 			ez->shift_press = true;
 			return false;
@@ -482,6 +512,24 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 			}
 			ez->shift_press = false;
 		}
+		
+		if(ez->unmatch_buffer_len > 5){
+			ez->mode += 1;
+			ez->mode %= 2;
+			
+			/*Commiting already typed word, before commit to remove the phonetic symbols*/
+			for(int remove_p; remove_p < ez->search_idx.size(); remove_p++){
+				ibus_ez_engine_preedit_erase(ez);
+			}
+			text = ibus_text_new_from_static_string(ez->unmatch_en->cStr());
+			ibus_ez_engine_append_preedit(ez, text);
+			if(ez->cursor_pos > 0){
+				ibus_ez_engine_commit_preedit(ez);
+			}
+			ibus_ez_engine_shift_mode_clear(ez);
+			return true;
+		}
+		
 		if(modifiers & IBUS_RELEASE_MASK)
 			return false;
 		
@@ -502,22 +550,26 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 		}
 		if( ((keyval >= IBUS_A && keyval <= IBUS_Z) || (keyval >= IBUS_a && keyval <= IBUS_z)) && !(modifiers & IBUS_CONTROL_MASK)){
 			guint index_alpha = 0;
+			char en_agru;
 			if(keyval >= IBUS_A && keyval <= IBUS_Z){
 				index_alpha = keyval - IBUS_A + 10;
+				en_agru = keyval - IBUS_A + 'a';
 			}else if(keyval >= IBUS_a && keyval <= IBUS_z){
 				index_alpha = keyval - IBUS_a + 10;
+				en_agru = keyval - IBUS_a + 'a';
 			}
+			/*Part of ch to en*/
+			ez->unmatch_buffer_len += 1;
+			ez->unmatch_en->insert(en_agru);
+			
 			ibus_ez_engine_search_idx_insert(ez, index_alpha);
-			/*
-			text = ibus_text_new_from_static_string(basic_word[index_alpha]->str);
-			ibus_ez_engine_append_preedit(ez,text);
-			*/
 			return true;
 		}
 		switch(keyval){
 			case IBUS_space:{
 				if(ez->search_idx.size() > 0){
 					//flat tone is not added to preedit, so the preedit erase step awalys erase size of search_idx minus one length
+					ez->unmatch_buffer_len += 1;
 					ibus_ez_engine_search_idx_append(ez, EZSPACE);
 					ibus_ez_engine_update_lookup_table(ez);
 					return true;
@@ -535,6 +587,7 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 			case IBUS_8:
 			case IBUS_9:
 			case IBUS_0:{
+				ez->unmatch_buffer_len += 1;
 				ibus_ez_engine_search_idx_insert(ez, keyval - IBUS_0);
 				return true;
 			}
@@ -542,31 +595,34 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 			case IBUS_3:
 			case IBUS_4:
 			case IBUS_6:
-			//try not add other tone in preedit
 			case IBUS_7:{
+				ez->unmatch_buffer_len += 1;
 				ibus_ez_engine_search_idx_append(ez, keyval - IBUS_0);
-				//text = ibus_text_new_from_static_string(basic_word[keyval - IBUS_0]->str);
-				//ibus_ez_engine_append_preedit(ez,text);
 				ibus_ez_engine_update_lookup_table(ez);	
 				return true;
 			}
 			case IBUS_minus:{
+				ez->unmatch_buffer_len += 1;
 				ibus_ez_engine_search_idx_insert(ez, 36);
 				return true;
 			}
 			case IBUS_semicolon:{
+				ez->unmatch_buffer_len += 1;
 				ibus_ez_engine_search_idx_insert(ez, 37);
 				return true;
 			}
 			case IBUS_slash:{
+				ez->unmatch_buffer_len += 1;
 				ibus_ez_engine_search_idx_insert(ez, 38);
 				return true;
 			}
 			case IBUS_comma:{
+				ez->unmatch_buffer_len += 1;
 				ibus_ez_engine_search_idx_insert(ez, 39);
 				return true;
 			}
 			case IBUS_period:{
+				ez->unmatch_buffer_len += 1;
 				ibus_ez_engine_search_idx_insert(ez, 40);
 				return true;
 			}
@@ -652,8 +708,12 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 			
 			case IBUS_BackSpace:{
 				if(ez->cursor_pos > 0){
+					if(ez->pointer_idx == ez->cursor_pos){
+							ibus_ez_engine_dict_pointer_erase(ez);
+					}
 					ibus_ez_engine_preedit_erase(ez);
 					ibus_ez_engine_search_idx_erase(ez);
+					
 					return true;
 				}
 			}
