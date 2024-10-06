@@ -213,6 +213,13 @@ ibus_ez_engine_insert_preedit(IBusEzEngine *ez, IBusText * text){
 }
 
 static void
+ibus_ez_engine_clear_preedit(IBusEzEngine  *ez){
+	g_string_assign(ez->preedit, "");
+	ez->cursor_pos = 0;
+	ibus_ez_engine_update(ez);
+}
+
+static void
 ibus_ez_engine_commit_preedit(IBusEzEngine *ez){
 	IBusText *text;
 	text = ibus_text_new_from_static_string(ez->preedit->str);
@@ -426,6 +433,12 @@ ibus_ez_engine_dict_pointer_clear(IBusEzEngine *ez){
 	ez->pointer_idx = 0;
 }
 
+static void
+ibus_ez_engine_shift_mode_clear(IBusEzEngine *ez){
+	ibus_ez_engine_clear_preedit(ez);
+	ibus_ez_engine_search_idx_clear(ez);
+	ibus_ez_engine_dict_pointer_clear(ez);
+}
 
 static gboolean 
 ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode, guint modifiers){
@@ -443,6 +456,8 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 				ez->shift_press = false;
 				ez->mode += 1;
 				ez->mode %= 2;
+				/*Initial the background variable*/
+				ibus_ez_engine_shift_mode_clear(ez);
 				return true;
 			}
 			ez->shift_press = false;
@@ -461,6 +476,8 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 				ez->shift_press = false;
 				ez->mode += 1;
 				ez->mode %= 2;
+				/*Initial the background variable*/
+				ibus_ez_engine_shift_mode_clear(ez);
 				return true;
 			}
 			ez->shift_press = false;
