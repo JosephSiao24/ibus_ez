@@ -514,7 +514,14 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 						ez->mode += 1;
 						ez->mode %= 2;
 						
-						ibus_engine_delete_surrounding_text(engine, -1 * ez->search_idx.size(), ez->search_idx.size());
+						//ibus_ez_engine_process_key_event(engine, IBUS_BackSpace, keycode, modifiers);
+						//ibus_engine_forward_key_event(engine, IBUS_BackSpace, IBUS_KEY_BackSpace, 0);
+						//ibus_engine_forward_key_event(engine, IBUS_BackSpace, IBUS_KEY_BackSpace, IBUS_RELEASE_MASK);
+						//ibus_ez_engine_commit_string(ez, "\b\b");
+						//print_search_idx(ez, "e\n");
+						ibus_engine_delete_surrounding_text(engine, -1 * (ez->search_idx.size()-1), ez->search_idx.size()-1);
+						//text = ibus_text_new_from_static_string("\b\b");
+						//ibus_ez_engine_append_preedit(ez, text);
 						ibus_ez_engine_update_lookup_table(ez);	
 						return true;
 					}else{
