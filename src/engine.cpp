@@ -430,6 +430,7 @@ ibus_ez_engine_search_idx_clear(IBusEzEngine *ez){
 	ez->search_idx.clear();
 	ez->search_pos = 0;
 	ez->unmatch_buffer_len = 0;
+	ez->unmatch_en->clear();
 }
 
 static void
@@ -485,15 +486,44 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 				ez->shift_press = false;
 				ez->mode += 1;
 				ez->mode %= 2;
+				
+				
 				/*Initial the background variable*/
 				ibus_ez_engine_shift_mode_clear(ez);
 				return true;
 			}
 			ez->shift_press = false;
-			return false;
+			if(!(modifiers & IBUS_RELEASE_MASK)){
+				if( ((keyval >= IBUS_A && keyval <= IBUS_Z) || (keyval >= IBUS_a && keyval <= IBUS_z)) && !(modifiers & IBUS_CONTROL_MASK)){
+					guint index_alpha = 0;
+					if(keyval >= IBUS_A && keyval <= IBUS_Z){
+						index_alpha = keyval - IBUS_A + 10;
+					}else if(keyval >= IBUS_a && keyval <= IBUS_z){
+						index_alpha = keyval - IBUS_a + 10;
+					}
+					ibus_ez_engine_search_idx_append(ez, index_alpha);
+				}
+				
+				if(keyval >= IBUS_0 && keyval <= IBUS_9){
+					ibus_ez_engine_search_idx_append(ez, keyval - IBUS_0);
+				}
+				
+				if(keyval == IBUS_space || keyval == IBUS_3 || keyval == IBUS_4 || keyval == IBUS_6 || keyval == IBUS_7){
+					
+					if(ibus_ez_engine_search_a_dict(ez)){
+						ez->mode += 1;
+						ez->mode %= 2;
+						
+						ibus_engine_delete_surrounding_text(engine, -1 * ez->search_idx.size(), ez->search_idx.size());
+						ibus_ez_engine_update_lookup_table(ez);	
+						return true;
+					}else{
+						ibus_ez_engine_search_idx_clear(ez);
+					}
+				}
+				return false;
+			}
 		}
-		
-		
 		return false;
 	}else{
 		//press shift switch to english method
@@ -523,6 +553,7 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 			}
 			text = ibus_text_new_from_static_string(ez->unmatch_en->cStr());
 			ibus_ez_engine_append_preedit(ez, text);
+			ez->unmatch_en->clear();
 			if(ez->cursor_pos > 0){
 				ibus_ez_engine_commit_preedit(ez);
 			}
@@ -569,12 +600,19 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 			case IBUS_space:{
 				if(ez->search_idx.size() > 0){
 					//flat tone is not added to preedit, so the preedit erase step awalys erase size of search_idx minus one length
+					/*
+						shift ch to en automatically
+					*/
 					ez->unmatch_buffer_len += 1;
+					ez->unmatch_en->insert(keyval - IBUS_space + ' ');
+					
 					ibus_ez_engine_search_idx_append(ez, EZSPACE);
 					ibus_ez_engine_update_lookup_table(ez);
 					return true;
 				}else if(ez->preedit->len > 0){
-					ibus_ez_engine_commit_preedit(ez);
+					text = ibus_text_new_from_static_string(" ");
+					ibus_ez_engine_append_preedit(ez, text);
+					ibus_ez_engine_update(ez);
 					return true;
 				}else{
 					return false;
