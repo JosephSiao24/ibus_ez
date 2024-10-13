@@ -39,6 +39,7 @@ std::vector<GString*> basic_word{
 	g_string_new("ㄦ"), //36
 	g_string_new("ㄤ"),
 	g_string_new("ㄥ"), //38
+	/*Error on order*/
 	g_string_new("ㄝ"),
 	g_string_new("ㄡ"), //40
 };
