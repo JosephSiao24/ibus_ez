@@ -316,6 +316,26 @@ ibus_ez_engine_check_en_match(IBusEzEngine *ez){
 	return cur->id == 1;// && pre->id == 1;
 }
 
+static bool
+ibus_ez_engine_check_en_exist(IBusEzEngine *ez){
+	if(ez->unmatch_en->str.length() == 0)
+		return false;
+	//ibus_ez_engine_commit_string(ez, ez->unmatch_en->cStr());
+	string str = ez->unmatch_en->str;
+	std::transform(str.begin(), str.end(), str.begin(),
+                   		[](unsigned char c){ return std::tolower(c); });	
+	dictTree* cur = ez->dict_en;
+	dictTree* pre = ez->dict_en;
+	for(char ch : str){
+		int key = ch - 'a';
+		if(cur->next.find(key) == cur->next.end())
+			return false;//cur->id == 1;
+		pre = cur;
+		cur = cur->next[key];
+	}
+	return true;// && pre->id == 1;
+}
+
 static void
 print_cursor(IBusEzEngine *ez, string a){
 	string str = "0";
@@ -523,6 +543,58 @@ print_unmatch_buffer_len(IBusEzEngine *ez, string a){
 	ibus_ez_engine_commit_string(ez, str.c_str());
 }
 
+static bool
+ibus_ez_engine_check_str_match(string str , IBusEzEngine *ez){
+	if(str.length() == 0)
+		return false;
+	//ibus_ez_engine_commit_string(ez, ez->unmatch_en->cStr());
+	std::transform(str.begin(), str.end(), str.begin(),
+                   		[](unsigned char c){ return std::tolower(c); });	
+	dictTree* cur = ez->dict_en;
+	dictTree* pre = ez->dict_en;
+	for(char ch : str){
+		int key = ch - 'a';
+		if(cur->next.find(key) == cur->next.end())
+			return false;//cur->id == 1;
+		pre = cur;
+		cur = cur->next[key];
+	}
+	return cur->id == 1;// && pre->id == 1;
+}
+
+vector<guint> convert_to_search_idx(string str){
+	vector<guint> rtn;
+	for(char ch : str){
+		if(ch >= 'a' && ch <= 'z'){
+			rtn.push_back(ch - 'a' + 10);
+		}else if(ch >= '0' && ch <= '9'){
+			rtn.push_back(ch - '0');
+		}
+	}
+	return rtn;
+}
+
+static void
+ibus_ez_engine_split_and_check(IBusEzEngine *ez){
+	if(ez->unmatch_en->str.length() == 0)
+		return;
+	//ibus_ez_engine_commit_string(ez, ez->unmatch_en->cStr());
+	string str = ez->unmatch_en->str;
+	int i;
+	int len = str.length();
+	for(i=len-1; i>0; i--){
+		str.erase(i,1);
+		if(ibus_ez_engine_check_str_match(str, ez))
+			break;
+	}	
+	if(i == 0)
+		return;
+	string str_search_idx = "";
+	for(int j = i; j<len; j++)
+		str_search_idx += ez->unmatch_en->str[j];
+	ez->search_idx = convert_to_search_idx(str_search_idx);
+}
+
 static gboolean 
 ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode, guint modifiers){
 	IBusEzEngine *ez = (IBusEzEngine *)engine;
@@ -564,10 +636,15 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 				
 				if(keyval >= IBUS_0 && keyval <= IBUS_9 || keyval == IBUS_space){
 					ibus_ez_engine_search_idx_append(ez, keyval - IBUS_0);
+					if(keyval != IBUS_space){
+						ez->unmatch_en->insert(keyval - IBUS_0 + '0');
+					}else{
+						ez->unmatch_en->insert(' ');
+					}
 				}
 				
 				if(keyval == IBUS_space || keyval == IBUS_3 || keyval == IBUS_4 || keyval == IBUS_6 || keyval == IBUS_7){
-					
+					ibus_ez_engine_split_and_check(ez);
 					if(ibus_ez_engine_search_a_dict(ez)){
 						ez->mode += 1;
 						ez->mode %= 2;
@@ -589,28 +666,25 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 					}
 				}
 				/*If enter project than p will match, then unmatch string being empty.*/
-				if(ibus_ez_engine_check_en_match(ez)){
+				/*if(!ibus_ez_engine_check_en_exist(ez)){
 					ibus_ez_engine_search_idx_clear(ez);
-					/*Insert pobomofo symbol*/
-					/*if( ((keyval >= IBUS_A && keyval <= IBUS_Z) || (keyval >= IBUS_a && keyval <= IBUS_z)) && !(modifiers & IBUS_CONTROL_MASK)){
+					
+					if( ((keyval >= IBUS_A && keyval <= IBUS_Z) || (keyval >= IBUS_a && keyval <= IBUS_z)) && !(modifiers & IBUS_CONTROL_MASK)){
 						guint index_alpha = 0;
-						char en_agru;
 						if(keyval >= IBUS_A && keyval <= IBUS_Z){
 							index_alpha = keyval - IBUS_A + 10;
-							en_agru = keyval - IBUS_A + 'a';
+							
 						}else if(keyval >= IBUS_a && keyval <= IBUS_z){
 							index_alpha = keyval - IBUS_a + 10;
-							en_agru = keyval - IBUS_a + 'a';
 						}
 						ibus_ez_engine_search_idx_append(ez, index_alpha);
-						ez->unmatch_en->insert(en_agru);
 					}
 					
 					if(keyval >= IBUS_0 && keyval <= IBUS_9 && keyval == IBUS_space){
 						ibus_ez_engine_search_idx_append(ez, keyval - IBUS_0);
-					}*/
-				}
-				//ibus_ez_engine_commit_string(ez, ez->unmatch_en->cStr());
+					}
+				}*/
+				//print_unmatch_buffer_len(ez, "\n");
 				return false;
 			}
 		}
