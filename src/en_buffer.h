@@ -17,6 +17,9 @@ public:
 	}
 	void insert(char ch, int p);
 	void insert(char ch);
+	void l_move();
+	void r_move();
+	void erase();
 	void clear();
 	const char* cStr();	
 };

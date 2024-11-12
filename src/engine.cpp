@@ -615,6 +615,7 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 				
 				/*Initial the background variable*/
 				ez->unmatch_en->clear();	
+				ibus_ez_engine_search_idx_clear(ez);
 				ibus_ez_engine_shift_mode_clear(ez);
 				return true;
 			}
@@ -663,6 +664,20 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 						ibus_ez_engine_search_idx_clear(ez);
 						if(keyval == IBUS_space)
 							ez->unmatch_en->clear();
+					}
+				}
+				switch(keyval){
+					case IBUS_Right:{
+						ez->unmatch_en->r_move();
+						break;
+					}
+					case IBUS_Left:{
+						ez->unmatch_en->l_move();
+						break;
+					}
+					case IBUS_BackSpace:{
+						ez->unmatch_en->erase();
+						break;
 					}
 				}
 				/*If enter project than p will match, then unmatch string being empty.*/
