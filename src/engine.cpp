@@ -421,7 +421,7 @@ ibus_ez_engine_update_lookup_table(IBusEzEngine *ez){
 		/*choose first candidate*/
 		IBusText* text = ibus_lookup_table_get_candidate(ez->table, 0);
 		//ibus_engine_commit_text((IBusEngine *)ez, text);
-		ibus_ez_engine_append_preedit(ez, text);
+		ibus_ez_engine_insert_preedit(ez, text);
 		ibus_ez_engine_update(ez);
 		ibus_ez_engine_hide_lookup_table(ez);
 		
@@ -455,29 +455,40 @@ static void
 ibus_ez_engine_search_idx_insert(IBusEzEngine *ez, int num){
 	/*Search the position to replace or insert*/
 	int insert_pos = ez->search_idx.size(); //defualt is append
+	IBusText* text;
 	for(int i=0; i < ez->search_idx.size(); i++){
 		/*If figure out same type that aleardy exist in search_idx*/
 		if(phonetic_type[ez->search_idx[i]] == phonetic_type[num]){
 			insert_pos = i;
-			break;
+			ez->search_idx[insert_pos] = num;
+			//Adjust cursor position, rewriting preedit
+			ez->cursor_pos = g_utf8_strlen(ez->preedit->str, -1) - ez->search_idx.size() + insert_pos + 1;
+			ibus_ez_engine_preedit_erase(ez);
+			text = ibus_text_new_from_static_string(basic_word[num]->str);
+			ibus_ez_engine_insert_preedit(ez, text);
+			//move cursor_pos to end
+			ez->cursor_pos = g_utf8_strlen(ez->preedit->str, -1);
+			return;
 		}
 	}
-	IBusText* text;
+	
 	/*Processing insert*/
 	if(insert_pos == ez->search_idx.size()){
 		ibus_ez_engine_search_idx_append(ez, num);
 		text = ibus_text_new_from_static_string(basic_word[num]->str);
-		ibus_ez_engine_append_preedit(ez,text);
+		ibus_ez_engine_insert_preedit(ez,text);
+		//ibus_ez_engine_append_preedit(ez,text);
 	}else{
 		//replace search_idx
-		ez->search_idx[insert_pos] = num;
+		/*ez->search_idx[insert_pos] = num;
 		//Adjust cursor position, rewriting preedit
 		ez->cursor_pos = g_utf8_strlen(ez->preedit->str, -1) - ez->search_idx.size() + insert_pos + 1;
 		ibus_ez_engine_preedit_erase(ez);
 		text = ibus_text_new_from_static_string(basic_word[num]->str);
 		ibus_ez_engine_insert_preedit(ez, text);
 		//move cursor_pos to end
-		ez->cursor_pos = g_utf8_strlen(ez->preedit->str, -1);
+		ez->cursor_pos = g_utf8_strlen(ez->preedit->str, -1);*/
+		
 	}
 	
 	ibus_ez_engine_update_preedit(ez);
@@ -636,10 +647,11 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 				}
 				
 				if(keyval >= IBUS_0 && keyval <= IBUS_9 || keyval == IBUS_space){
-					ibus_ez_engine_search_idx_append(ez, keyval - IBUS_0);
 					if(keyval != IBUS_space){
+						ibus_ez_engine_search_idx_append(ez, keyval - IBUS_0);
 						ez->unmatch_en->insert(keyval - IBUS_0 + '0');
 					}else{
+						ibus_ez_engine_search_idx_append(ez, EZSPACE);
 						ez->unmatch_en->insert(' ');
 					}
 				}
@@ -937,7 +949,7 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 			case IBUS_Return:{
 				if(ibus_lookup_table_get_number_of_candidates(ez->table) > 0){
 					text = ibus_lookup_table_get_candidate(ez->table, ez->tableIdx);
-					ibus_ez_engine_append_preedit(ez, text);
+					ibus_ez_engine_insert_preedit(ez, text);
 					ibus_ez_engine_update(ez);
 					ibus_ez_engine_hide_lookup_table(ez);
 					return true;

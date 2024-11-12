@@ -31,8 +31,10 @@ void en_buffer::r_move(){
 }
 
 void en_buffer::erase(){
-	str.erase(idx-1,1);
-	idx--;
+	if(idx > 0){
+		str.erase(idx-1,1);
+		idx--;
+	}
 }
 
 void en_buffer::clear(){
