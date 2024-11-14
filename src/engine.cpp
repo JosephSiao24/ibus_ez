@@ -34,6 +34,8 @@ struct _IBusEzEngine{
 	en_buffer* unmatch_en;
 };
 
+int count_en = 0;
+
 struct _IBusEzEngineClass{
 	IBusEngineClass parent;
 };
@@ -110,7 +112,7 @@ void initial_dict_zh(IBusEzEngine *ez){
 }
 
 void initial_dict_en(IBusEzEngine *ez){
-	std::ifstream file("/home/joseph/Desktop/HelloWorldProject/en_dict.csv");
+	std::ifstream file("/home/joseph/Desktop/HelloWorldProject/en_dictpk.csv");
 	string line;
 	while(getline(file,line)){
 		dictTree* cur = ez->dict_en;
@@ -123,6 +125,7 @@ void initial_dict_en(IBusEzEngine *ez){
 			}
 			cur = cur->next[key];
 		}
+		count_en += 1;
 		cur->id = 1;
 	}
 	file.close();
@@ -350,8 +353,9 @@ print_cursor(IBusEzEngine *ez, string a){
 
 static void
 print_search_idx(IBusEzEngine *ez, string a){
-	string str = "0";
-	str[0] += ez->search_idx.size();
+	string str = "";
+	//str += to_string(count_en);
+	str += to_string(ez->search_idx.size());
 	str += " ";
 	str += "search_idx ";
 	str += a;
@@ -546,7 +550,7 @@ ibus_ez_engine_shift_mode_clear(IBusEzEngine *ez){
 static void
 print_unmatch_buffer_len(IBusEzEngine *ez, string a){
 	string str = "0";
-	str[0] += ez->unmatch_buffer_len;
+	str[0] += ez->unmatch_en->str.length();
 	str += " ";
 	str += ez->unmatch_en->str;
 	str += " ";
@@ -580,6 +584,16 @@ vector<guint> convert_to_search_idx(string str){
 			rtn.push_back(ch - 'a' + 10);
 		}else if(ch >= '0' && ch <= '9'){
 			rtn.push_back(ch - '0');
+		}else if(ch == '/'){
+			rtn.push_back(ch-'/' + 38);
+		}else if(ch == '.'){
+			rtn.push_back(ch-'.' + 40);
+		}else if(ch == ','){
+			rtn.push_back(ch-',' + 39);
+		}else if(ch == '-'){
+			rtn.push_back(ch-'-' + 36);
+		}else if(ch == ';'){
+			rtn.push_back(ch-';' + 37);
 		}
 	}
 	return rtn;
@@ -603,6 +617,7 @@ ibus_ez_engine_split_and_check(IBusEzEngine *ez){
 	string str_search_idx = "";
 	for(int j = i; j<len; j++)
 		str_search_idx += ez->unmatch_en->str[j];
+	//print_search_idx(ez, "debugg");
 	ez->search_idx = convert_to_search_idx(str_search_idx);
 }
 
@@ -655,9 +670,22 @@ ibus_ez_engine_process_key_event(IBusEngine *engine, guint keyval, guint keycode
 						ez->unmatch_en->insert(' ');
 					}
 				}
+				if(keyval == IBUS_slash){
+					ez->unmatch_en->insert('/');
+				}else if(keyval == IBUS_comma){
+					ez->unmatch_en->insert('.');
+				}else if(keyval ==  IBUS_period){
+					ez->unmatch_en->insert(',');
+				}else if(keyval ==  IBUS_minus){
+					ez->unmatch_en->insert('-');
+				}else if(keyval ==  IBUS_semicolon){
+					ez->unmatch_en->insert(';');
+				}
 				
+				//print_search_idx(ez, "debugg");
 				if(keyval == IBUS_space || keyval == IBUS_3 || keyval == IBUS_4 || keyval == IBUS_6 || keyval == IBUS_7){
 					ibus_ez_engine_split_and_check(ez);
+					//print_search_idx(ez, "debugg");
 					if(ibus_ez_engine_search_a_dict(ez)){
 						ez->mode += 1;
 						ez->mode %= 2;
